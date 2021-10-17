@@ -1,0 +1,23 @@
+insert into persons (id,
+                     first_name,
+                     last_name,
+                     email,
+                     age,
+                     gender,
+                     hobbies,
+                     city,
+                     password,
+                     created,
+                     updated) value (
+                                     :person_id,
+                                     :first_name,
+                                     :last_name,
+                                     :email,
+                                     :age,
+                                     :gender,
+                                     :hobbies,
+                                     :city,
+                                     :password,
+                                     now(),
+                                     now()
+    );
