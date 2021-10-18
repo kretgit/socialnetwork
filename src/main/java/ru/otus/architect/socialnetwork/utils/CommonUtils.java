@@ -1,6 +1,7 @@
 package ru.otus.architect.socialnetwork.utils;
 
 import org.apache.commons.io.IOUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.util.ObjectUtils;
 
 import java.nio.charset.Charset;
@@ -27,6 +28,12 @@ public class CommonUtils {
 
     public static <T> T alterValue(T value, T alter) {
         return ObjectUtils.isEmpty(value) ? alter : value;
+    }
+
+    public static String getNextId(JdbcTemplate jdbcTemplate, EntityType type) {
+        jdbcTemplate.update("update sequence set generated_value = generated_value + 1 where entity_type = '" + type.getSeqType() + "'");
+        return jdbcTemplate.queryForObject(
+                "select concat(entity_type, generated_value) as id from sequence", String.class);
     }
 
 }

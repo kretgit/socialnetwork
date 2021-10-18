@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 public class Person {
 
-    private int id;
+    private String id;
     private String firstName;
     private String lastName;
     private int age;

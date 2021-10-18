@@ -13,7 +13,11 @@ public interface PersonDao {
 
     List<Person> getAllPersons();
 
-    Person getPersonById(int personId);
+    Person getPersonById(String personId);
 
     Person getPersonByEmail(String email);
+
+    void makeFriends(String personId, String friendId);
+
+    List<Person> getPersonFriends(String id);
 }

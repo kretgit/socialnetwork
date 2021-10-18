@@ -7,13 +7,14 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcDaoSupport;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import ru.otus.architect.socialnetwork.controller.Controller;
 import ru.otus.architect.socialnetwork.model.Person;
 import ru.otus.architect.socialnetwork.utils.CommonUtils;
+import ru.otus.architect.socialnetwork.utils.EntityType;
 import ru.otus.architect.socialnetwork.utils.Integration;
 
 import javax.sql.DataSource;
-import java.util.Collections;
 import java.util.List;
 
 import static ru.otus.architect.socialnetwork.utils.CommonUtils.alterValue;
@@ -27,30 +28,34 @@ public class PersonDaoImpl extends NamedParameterJdbcDaoSupport implements Perso
     }
 
     private final RowMapper<Person> PERSON_ROW_MAPPER = (rs, rowNum) ->
-         Person.builder()
-                 .id(rs.getInt("id"))
-                 .firstName(rs.getString("first_name"))
-                 .lastName(rs.getString("last_name"))
-                 .gender(Person.Gender.valueOf(rs.getString("gender")))
-                 .email(rs.getString("email"))
-                 .city(rs.getString("city"))
-                 .hobbies(Integration.listFromJson(String.class, rs.getString("hobbies")))
-                 .age(rs.getInt("age"))
-                 .build();
+            Person.builder()
+                    .id(rs.getString("id"))
+                    .firstName(rs.getString("first_name"))
+                    .lastName(rs.getString("last_name"))
+                    .gender(Person.Gender.valueOf(rs.getString("gender")))
+                    .email(rs.getString("email"))
+                    .city(rs.getString("city"))
+                    .hobbies(Integration.listFromJson(String.class, rs.getString("hobbies")))
+                    .age(rs.getInt("age"))
+                    .build();
 
-    private int getNextId() {
-        return getNamedParameterJdbcTemplate().queryForObject("select count(*) + 1 as next_id from persons",
-                Collections.emptyMap(), int.class);
-    }
+    private final RowMapper<Person> PERSON_LIST_ROW_MAPPER = (rs, rowNum) ->
+            Person.builder()
+                    .id(rs.getString("id"))
+                    .firstName(rs.getString("first_name"))
+                    .lastName(rs.getString("last_name"))
+                    .city(rs.getString("city"))
+                    .build();
 
     @Override
+    @Transactional
     public Person registerPerson(Controller.RegistrationRq rq) {
 
         if (getPersonByEmail(rq.getEmail()) != null) {
             return null;
         }
 
-        int personId = getNextId();
+        String personId = CommonUtils.getNextId(getJdbcTemplate(), EntityType.PERSON);
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("person_id", personId);
         params.addValue("first_name", rq.getFirstName());
@@ -61,7 +66,7 @@ public class PersonDaoImpl extends NamedParameterJdbcDaoSupport implements Perso
         params.addValue("city", rq.getCity());
         params.addValue("email", rq.getEmail());
         params.addValue("password", new BCryptPasswordEncoder().encode(rq.getPassword()));
-        getNamedParameterJdbcTemplate().update(CommonUtils.resourceAsString("sql/register_person.sql"), params);
+        getNamedParameterJdbcTemplate().update(CommonUtils.resourceAsString("sql/person_register.sql"), params);
 
         return Person.builder()
                 .id(personId)
@@ -103,11 +108,11 @@ public class PersonDaoImpl extends NamedParameterJdbcDaoSupport implements Perso
         params.addValue("hobbies", Integration.toJsonCompact(person.getHobbies()).toString());
         params.addValue("email", person.getEmail());
         params.addValue("city", person.getCity());
-        getNamedParameterJdbcTemplate().update(CommonUtils.resourceAsString("sql/update_person.sql"), params);
+        getNamedParameterJdbcTemplate().update(CommonUtils.resourceAsString("sql/person_update.sql"), params);
     }
 
     @Override
-    public Person getPersonById(int personId) {
+    public Person getPersonById(String personId) {
         Person person = null;
         MapSqlParameterSource param = new MapSqlParameterSource();
         param.addValue("person_id", personId);
@@ -136,6 +141,28 @@ public class PersonDaoImpl extends NamedParameterJdbcDaoSupport implements Perso
 
     @Override
     public List<Person> getAllPersons() {
-        return getNamedParameterJdbcTemplate().query("select * from persons", PERSON_ROW_MAPPER);
+        return getNamedParameterJdbcTemplate().query("select * from persons", PERSON_LIST_ROW_MAPPER);
+    }
+
+    @Override
+    @Transactional
+    public void makeFriends(String personId, String friendId) {
+        MapSqlParameterSource param1 = new MapSqlParameterSource();
+        param1.addValue("first_friend_id", personId);
+        param1.addValue("second_friend_id", friendId);
+        getNamedParameterJdbcTemplate().update(CommonUtils.resourceAsString("sql/friend_create.sql"), param1);
+
+        MapSqlParameterSource param2 = new MapSqlParameterSource();
+        param2.addValue("first_friend_id", friendId);
+        param2.addValue("second_friend_id", personId);
+        getNamedParameterJdbcTemplate().update(CommonUtils.resourceAsString("sql/friend_create.sql"), param2);
+    }
+
+    @Override
+    public List<Person> getPersonFriends(String id) {
+        MapSqlParameterSource param = new MapSqlParameterSource();
+        param.addValue("person_id", id);
+        return getNamedParameterJdbcTemplate().query(CommonUtils.resourceAsString("sql/friend_select.sql"),
+                param, PERSON_ROW_MAPPER);
     }
 }

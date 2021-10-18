@@ -2,6 +2,7 @@ package ru.otus.architect.socialnetwork.controller;
 
 import lombok.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.otus.architect.socialnetwork.model.Person;
@@ -36,6 +37,15 @@ public class Controller {
         private final String password;
     }
 
+    @RequiredArgsConstructor
+    @Getter
+    public static final class FriendshipRq {
+        @NonNull
+        private final String firstFriendId;
+        @NonNull
+        private final String secondFriendId;
+    }
+
     @RequestMapping(value = "/ping", method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity<String> ping() {
         return ResponseEntity.ok("pong");
@@ -52,8 +62,22 @@ public class Controller {
     }
 
     @GetMapping("/persons/{id}")
-    public ResponseEntity<Person> getPersonById(@PathVariable int id) {
+    public ResponseEntity<Person> getPersonById(@PathVariable String id) {
         return ResponseEntity.ok(personService.getPersonById(id));
+    }
+
+    @PostMapping("/persons/friends")
+    public ResponseEntity makeFriends (@RequestBody FriendshipRq rq) {
+        if (rq.firstFriendId.equals(rq.secondFriendId)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("you can't get friendship with yourself");
+        }
+        personService.makeFriends(rq.firstFriendId, rq.secondFriendId);
+        return ResponseEntity.ok(null);
+    }
+
+    @GetMapping("/persons/friends/{id}")
+    public ResponseEntity<List<Person>> getPersonFriends(@PathVariable String id) {
+        return ResponseEntity.ok(personService.getPersonFriends(id));
     }
 
 }

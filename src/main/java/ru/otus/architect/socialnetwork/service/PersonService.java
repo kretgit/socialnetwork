@@ -22,7 +22,7 @@ public class PersonService {
         return personDao.getAllPersons();
     }
 
-    public Person getPersonById(int personId) {
+    public Person getPersonById(String personId) {
         return personDao.getPersonById(personId);
     }
 
@@ -30,5 +30,11 @@ public class PersonService {
         return personDao.getPersonByEmail(email);
     }
 
+    public void makeFriends(String personId, String friendId) {
+        personDao.makeFriends(personId, friendId);
+    }
 
+    public List<Person> getPersonFriends(String id) {
+        return personDao.getPersonFriends(id);
+    }
 }
