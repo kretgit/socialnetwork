@@ -2,11 +2,13 @@ package ru.otus.architect.socialnetwork.controller;
 
 import lombok.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.otus.architect.socialnetwork.exception.CommonException;
 import ru.otus.architect.socialnetwork.model.Person;
 import ru.otus.architect.socialnetwork.service.PersonService;
+import ru.otus.architect.socialnetwork.utils.CommonUtils;
 
 import java.util.List;
 
@@ -67,12 +69,17 @@ public class Controller {
     }
 
     @PostMapping("/persons/friends")
-    public ResponseEntity makeFriends (@RequestBody FriendshipRq rq) {
+    public ResponseEntity makeFriends (@RequestBody FriendshipRq rq, @RequestHeader HttpHeaders httpHeaders) {
         if (rq.firstFriendId.equals(rq.secondFriendId)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("you can't get friendship with yourself");
+            throw new CommonException("you can't get friendship with yourself");
+        }
+        String email = CommonUtils.getLoginFromHeaders(httpHeaders);
+        Person person = personService.getPersonByEmail(email);
+        if (!person.getId().equalsIgnoreCase(rq.firstFriendId) && !person.getId().equalsIgnoreCase(rq.secondFriendId)) {
+            throw new CommonException("you can't make friends another persons");
         }
         personService.makeFriends(rq.firstFriendId, rq.secondFriendId);
-        return ResponseEntity.ok(null);
+        return ResponseEntity.ok("now you friends!");
     }
 
     @GetMapping("/persons/friends/{id}")

@@ -1,5 +1,6 @@
 package ru.otus.architect.socialnetwork.dao;
 
+import org.springframework.dao.DuplicateKeyException;
 import ru.otus.architect.socialnetwork.controller.Controller;
 import ru.otus.architect.socialnetwork.model.Person;
 
@@ -17,7 +18,7 @@ public interface PersonDao {
 
     Person getPersonByEmail(String email);
 
-    void makeFriends(String personId, String friendId);
+    void makeFriends(String personId, String friendId) throws DuplicateKeyException;
 
     List<Person> getPersonFriends(String id);
 }

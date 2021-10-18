@@ -1,9 +1,11 @@
 package ru.otus.architect.socialnetwork.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 import ru.otus.architect.socialnetwork.controller.Controller;
 import ru.otus.architect.socialnetwork.dao.PersonDao;
+import ru.otus.architect.socialnetwork.exception.CommonException;
 import ru.otus.architect.socialnetwork.model.Person;
 
 import java.util.List;
@@ -31,7 +33,11 @@ public class PersonService {
     }
 
     public void makeFriends(String personId, String friendId) {
-        personDao.makeFriends(personId, friendId);
+        try {
+            personDao.makeFriends(personId, friendId);
+        } catch (DuplicateKeyException e) {
+            throw new CommonException("you are already friends");
+        }
     }
 
     public List<Person> getPersonFriends(String id) {

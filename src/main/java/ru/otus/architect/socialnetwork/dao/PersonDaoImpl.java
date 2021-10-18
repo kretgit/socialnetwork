@@ -1,6 +1,7 @@
 package ru.otus.architect.socialnetwork.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -9,6 +10,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import ru.otus.architect.socialnetwork.controller.Controller;
+import ru.otus.architect.socialnetwork.exception.CommonException;
+import ru.otus.architect.socialnetwork.exception.NoSuchPersonException;
 import ru.otus.architect.socialnetwork.model.Person;
 import ru.otus.architect.socialnetwork.utils.CommonUtils;
 import ru.otus.architect.socialnetwork.utils.EntityType;
@@ -39,20 +42,12 @@ public class PersonDaoImpl extends NamedParameterJdbcDaoSupport implements Perso
                     .age(rs.getInt("age"))
                     .build();
 
-    private final RowMapper<Person> PERSON_LIST_ROW_MAPPER = (rs, rowNum) ->
-            Person.builder()
-                    .id(rs.getString("id"))
-                    .firstName(rs.getString("first_name"))
-                    .lastName(rs.getString("last_name"))
-                    .city(rs.getString("city"))
-                    .build();
-
     @Override
     @Transactional
     public Person registerPerson(Controller.RegistrationRq rq) {
 
         if (getPersonByEmail(rq.getEmail()) != null) {
-            return null;
+            throw new CommonException("user with email: " + rq.getEmail() + " already registered");
         }
 
         String personId = CommonUtils.getNextId(getJdbcTemplate(), EntityType.PERSON);
@@ -112,20 +107,22 @@ public class PersonDaoImpl extends NamedParameterJdbcDaoSupport implements Perso
     }
 
     @Override
+    @SuppressWarnings("noinspection SqlResolve")
     public Person getPersonById(String personId) {
-        Person person = null;
+        Person person;
         MapSqlParameterSource param = new MapSqlParameterSource();
         param.addValue("person_id", personId);
         try {
             person = getNamedParameterJdbcTemplate().queryForObject("select * from persons where id = :person_id",
                     param, PERSON_ROW_MAPPER);
         } catch (EmptyResultDataAccessException e) {
-            e.getMessage();
+            throw new NoSuchPersonException("person with ID: " + personId + " not found in DB");
         }
         return person;
     }
 
     @Override
+    @SuppressWarnings("noinspection SqlResolve")
     public Person getPersonByEmail(String email) {
         Person person = null;
         MapSqlParameterSource param = new MapSqlParameterSource();
@@ -140,13 +137,14 @@ public class PersonDaoImpl extends NamedParameterJdbcDaoSupport implements Perso
     }
 
     @Override
+    @SuppressWarnings("noinspection SqlResolve")
     public List<Person> getAllPersons() {
-        return getNamedParameterJdbcTemplate().query("select * from persons", PERSON_LIST_ROW_MAPPER);
+        return getNamedParameterJdbcTemplate().query("select * from persons", PERSON_ROW_MAPPER);
     }
 
     @Override
     @Transactional
-    public void makeFriends(String personId, String friendId) {
+    public void makeFriends(String personId, String friendId) throws DuplicateKeyException {
         MapSqlParameterSource param1 = new MapSqlParameterSource();
         param1.addValue("first_friend_id", personId);
         param1.addValue("second_friend_id", friendId);
