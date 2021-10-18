@@ -14,4 +14,7 @@ security-settings:
   url-whitelist:
     /auth,
     /ping,
-    /register
+    /register,
+    /swagger-ui.html,
+    /swagger-ui/**,
+    /v3/api-docs/**

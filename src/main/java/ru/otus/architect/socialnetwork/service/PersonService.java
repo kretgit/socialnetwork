@@ -33,8 +33,11 @@ public class PersonService {
     }
 
     public void makeFriends(String personId, String friendId) {
+        Person person = getPersonById(personId);
+        Person friend = getPersonById(friendId);
+
         try {
-            personDao.makeFriends(personId, friendId);
+            personDao.makeFriends(person.getId(), friend.getId());
         } catch (DuplicateKeyException e) {
             throw new CommonException("you are already friends");
         }

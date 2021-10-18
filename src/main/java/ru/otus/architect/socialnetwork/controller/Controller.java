@@ -1,5 +1,8 @@
 package ru.otus.architect.socialnetwork.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +16,7 @@ import ru.otus.architect.socialnetwork.utils.CommonUtils;
 import java.util.List;
 
 @RestController
+@Tag(name = "Контроллер для работы в социальной сети", description = "Для выполнения части операций необхдимо авторизоваться")
 public class Controller {
 
     @Autowired
@@ -48,26 +52,34 @@ public class Controller {
         private final String secondFriendId;
     }
 
-    @RequestMapping(value = "/ping", method = {RequestMethod.GET, RequestMethod.POST})
+    @Operation(summary = "Проверка доступности приложения")
+    @GetMapping(value = "/ping")
     public ResponseEntity<String> ping() {
         return ResponseEntity.ok("pong");
     }
 
+    @Operation(summary = "Регистрация нового пользовтеля")
     @PostMapping("/register")
     public ResponseEntity<Person> register(@RequestBody RegistrationRq rq) {
         return ResponseEntity.ok(personService.registerPerson(rq));
     }
 
+    @Operation(summary = "Получить всех пользователей", description = "Требуется авторизация")
+    @SecurityRequirement(name = "swagger")
     @GetMapping("/persons")
     public ResponseEntity<List<Person>> getAllPersons() {
         return ResponseEntity.ok(personService.getAllPersons());
     }
 
+    @Operation(summary = "Получить поьзователя по ID", description = "Требуется авторизация")
+    @SecurityRequirement(name = "swagger")
     @GetMapping("/persons/{id}")
     public ResponseEntity<Person> getPersonById(@PathVariable String id) {
         return ResponseEntity.ok(personService.getPersonById(id));
     }
 
+    @Operation(summary = "Подружиться с пользователем", description = "Требуется авторизация")
+    @SecurityRequirement(name = "swagger")
     @PostMapping("/persons/friends")
     public ResponseEntity makeFriends (@RequestBody FriendshipRq rq, @RequestHeader HttpHeaders httpHeaders) {
         if (rq.firstFriendId.equals(rq.secondFriendId)) {
@@ -76,12 +88,14 @@ public class Controller {
         String email = CommonUtils.getLoginFromHeaders(httpHeaders);
         Person person = personService.getPersonByEmail(email);
         if (!person.getId().equalsIgnoreCase(rq.firstFriendId) && !person.getId().equalsIgnoreCase(rq.secondFriendId)) {
-            throw new CommonException("you can't make friends another persons");
+            throw new CommonException("you can't make friends another persons. Only admin can do this");
         }
         personService.makeFriends(rq.firstFriendId, rq.secondFriendId);
-        return ResponseEntity.ok("now you friends!");
+        return ResponseEntity.ok("you are friends now!");
     }
 
+    @Operation(summary = "Получить всех друзей пользователя по ID", description = "Требуется авторизация")
+    @SecurityRequirement(name = "swagger")
     @GetMapping("/persons/friends/{id}")
     public ResponseEntity<List<Person>> getPersonFriends(@PathVariable String id) {
         return ResponseEntity.ok(personService.getPersonFriends(id));
